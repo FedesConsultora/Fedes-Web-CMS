@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <?!= include('AdminCss'); ?>
+</head>
+<body>
+  <div id="loginView" class="center-screen">
+    <form id="loginForm" class="card login-card">
+      <div class="brand">FEDES</div>
+      <h1>Landing CMS</h1>
+      <p>Administración de contenido, campañas y leads.</p>
+      <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+      <button type="submit">Ingresar</button>
+      <div id="loginError" class="error"></div>
+    </form>
+  </div>
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><b>FEDES</b><span>CMS</span></div>
+      <button data-view="dashboard" class="nav active">Dashboard</button>
+      <div id="entityNav"></div>
+      <button data-view="leads" class="nav">Leads</button>
+      <button data-view="media" class="nav">Media</button>
+      <button data-view="audit" class="nav">Historial</button>
+      <button id="logoutBtn" class="nav logout">Salir</button>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div><h2 id="viewTitle">Dashboard</h2><small id="viewSubtitle"></small></div><button id="newBtn" class="primary hidden">+ Nuevo</button></header>
+      <section id="content"></section>
+    </main>
+  </div>
+  <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
+  <?!= include('AdminJs'); ?>
+</body>
+</html>
