@@ -89,6 +89,7 @@ function completeGaliciaLead_(data) {
     return galiciaResultFromLead_(lead);
   }
 
+  var website=safeString_(data.website) ? sanitizeUrl_(data.website) : safeString_(lead.website);
   var answers={q1:safeString_(data.q1).toUpperCase(),q2:safeString_(data.q2).toUpperCase(),q3:safeString_(data.q3).toUpperCase(),q4:safeString_(data.q4).toUpperCase()};
   Object.keys(answers).forEach(function(k){ if (!GALICIA.SCORES.hasOwnProperty(answers[k])) throw new Error('Respuesta inválida para '+k); });
   var knockout=answers.q2==='A';
@@ -105,7 +106,7 @@ function completeGaliciaLead_(data) {
     upsertLeadAnswer_(leadId,q,answerKey,question.options[answerKey],GALICIA.SCORES[answerKey],q==='q2'&&answerKey==='A');
   });
   var saved=dbUpdateById_(APP.SHEETS.LEADS,leadId,{
-    status:'complete',stage:stage,score_total:total,knockout:knockout,classification:classification,benefit:benefit,mailing_segment:segment,completed_at:nowIso_()
+    website:website,status:'complete',stage:stage,score_total:total,knockout:knockout,classification:classification,benefit:benefit,mailing_segment:segment,completed_at:nowIso_()
   });
   recordLeadEvent_(leadId,'lead_completed',{score:total,classification:classification,source:lead.source,pagePath:data.pagePath||'/bono'});
   audit_(lead.email,'lead',APP.SHEETS.LEADS,leadId,'complete',lead,saved,'public_form');
