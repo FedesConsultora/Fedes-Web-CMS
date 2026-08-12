@@ -1,24 +1,30 @@
 # Fedes Landing CMS — Google Apps Script
 
-Backend, CMS y backoffice de `FedesConsultora/FedesConsultora_Landing`, basado en Google Apps Script + Google Sheets + Google Drive.
+Backend de datos de `FedesConsultora/FedesConsultora_Landing`, basado en Google Apps Script + Google Sheets + Google Drive.
 
 ## Estado actual
 
-- Backoffice: **3.0.0**.
+- Backend: **4.0.0**.
 - Schema: **v3**.
-- Fuente de verdad: las tablas nuevas `CMS_*`, `CRM_*`, `ONB_Records`, `AN_Events`, `_AuditLog` y `_System`.
-- Banco Galicia 2026 se gestiona como **una campaña dentro de `CRM_Campaigns`**, no como un sistema separado.
-- Recuperación y autosave del funnel Galicia: implementados.
-- `CRM_LeadMailings`: preparado para registrar secuencias y proveedor de mailing.
-- Integración PostgreSQL/VADDAR: futura; no exponer credenciales en frontend.
+- Backoffice: **100% React** en `FedesConsultora_Landing/src/pages/Admin`.
+- Apps Script ya no contiene ni renderiza HTML del panel administrativo.
+- Fuente de verdad: `CMS_*`, `CRM_*`, `ONB_Records`, `AN_Events`, `_AuditLog` y `_System`.
+- Banco Galicia 2026 es una campaña dentro de `CRM_Campaigns`; no tiene arquitectura separada.
 
-## Backoffice 3.0
+## Arquitectura del admin
 
-Panel: `WEB_APP_URL?page=admin`. La landing React lo monta en `/admin` mediante iframe sobre la misma Web App de Apps Script.
+`fedes.ai/admin` renderiza componentes React nativos y consume Apps Script exclusivamente como backend API.
 
-El panel usa autenticación real del backend: contraseña hasheada en Script Properties y token de sesión temporal en `CacheService`. No existe PIN de administración dentro del bundle React.
+El navegador no usa `google.script.run` ni iframe. Las operaciones administrativas viajan mediante POST `no-cors` con un `requestId` y un secreto efímero; el resultado se recupera una sola vez por JSONP desde `?api=admin-result`. El token de sesión administrativo viaja dentro del body POST, no en la URL.
 
-### Módulos
+Archivos principales:
+
+- `AdminHttpBridge.gs`: transporte HTTP para React.
+- `AdminReactData.gs`: workspace, ABMC, filtros, dashboard, vistas 360° e insights.
+- `Security.gs`: autenticación, sesiones y credenciales.
+- `MediaService.gs`: subida de imágenes a Drive.
+
+## Cobertura del backoffice
 
 **CRM**
 
@@ -52,78 +58,55 @@ El panel usa autenticación real del backend: contraseña hasheada en Script Pro
 - Auditoría
 - Sistema
 
-### ABMC y consulta
+## ABMC y consulta
 
-Las tablas operativas tienen, según su naturaleza:
+Las entidades operativas soportan según su naturaleza:
 
 - Alta
-- Baja lógica / archivo y restauración
-- Baja definitiva solamente en tablas de eventos sin `archived_at`
 - Modificación
-- Consulta de todos los campos
-- Duplicación sólo en entidades donde no rompe integridad
+- Consulta
+- Baja lógica / archivo y restauración
+- Baja definitiva en tablas de eventos sin `archived_at`
 - Selección y acciones masivas
 - Búsqueda libre
-- Filtros por facetas reales de la base
-- Filtro por fechas
-- Inclusión de registros dados de baja
-- Orden ascendente / descendente por campo
+- Filtros por facetas reales
+- Filtro de fechas
+- Inclusión de bajas
+- Orden ASC / DESC
 - Paginación
-- Exportación CSV de la consulta filtrada
+- Exportación CSV
+- Duplicación sólo donde no compromete integridad
 
-`_AuditLog` y `_System` son deliberadamente de **solo lectura**. Permitir ABM sobre auditoría o metadatos internos destruiría la trazabilidad del sistema.
+`_AuditLog` y `_System` permanecen deliberadamente de solo lectura para preservar trazabilidad e integridad técnica.
 
-### Vistas 360°
+## Vistas 360°
 
-**Campaña 360°** funciona para cualquier `campaign_key` y muestra leads, conversión, completitud, fuentes, segmentos, mailings y actividad. Galicia usa la misma arquitectura que cualquier campaña futura.
+**Campaña 360°** funciona para cualquier `campaign_key` y muestra leads, conversión, fuentes, segmentos, etapas, mailings y actividad.
 
-**Lead 360°** reúne perfil, atribución, scoring interno, revisión manual, respuestas, eventos, mailings, responsable, próxima acción y estado de reunión.
+**Lead 360°** reúne perfil, atribución, scoring interno, revisión manual, respuestas, eventos, mailings, responsable, próxima acción y reunión. Las campañas que tengan recuperación implementada pueden emitir un enlace seguro desde esa vista.
 
-**Onboarding 360°** reúne el legajo normalizado, estado, paso y respuestas. El panel vuelve a aplicar redacción defensiva sobre claves sensibles antes de mostrar `data_json`.
+**Onboarding 360°** reúne legajo normalizado, estado, paso y respuestas; `data_json` se vuelve a sanitizar defensivamente antes de exponerse al frontend.
 
-## Qué resuelve
+## Seguridad
 
-- Google Sheets como base operativa y CMS específico de la web.
-- Setup idempotente para instalaciones nuevas.
-- CMS con estados `draft / published / hidden / archived`.
-- Historial `_AuditLog` para escrituras administrativas.
-- Google Drive para imágenes.
-- Cache pública y locks para escrituras.
-- API pública JSON/JSONP y API interna autenticada.
-- Funnel de campañas con captura temprana, scoring, dedupe, autosave y recuperación.
-- Base preparada para mailings y futura conexión con VADDAR.
+- Contraseña administrativa hasheada + salt en Script Properties.
+- Sesiones temporales en `CacheService`.
+- Cambio de contraseña desde el React Admin validando la contraseña actual.
+- Rotación de API key VADDAR desde el panel; la nueva key se muestra una sola vez.
+- El token de recuperación de leads se persiste sólo como hash.
+- No guardar credenciales en React, `.env` versionado ni Google Sheets en claro.
 
-## Instalación nueva
+## Instalación / actualización
 
-1. Abrí o creá el proyecto Apps Script asociado a la Sheet de Fedes.
-2. Configurá `.clasp.json` localmente con el `scriptId`; no lo commitees.
-3. Ejecutá `clasp push`.
-4. Ejecutá `setupFedesCms()` una sola vez en una instalación nueva.
-5. Guardá de forma segura las credenciales iniciales generadas por el setup.
-6. Desplegá como Web App con acceso público para la landing. Las operaciones administrativas siguen protegidas por sesión.
-7. Panel: `WEB_APP_URL?page=admin`.
-8. Health: `WEB_APP_URL?api=health`.
+En una instalación existente:
 
-No ejecutes `setupFedesCms()` para upgrades de una base productiva ya inicializada salvo que el cambio haya sido diseñado específicamente para ello.
+1. `git pull origin main`
+2. `clasp push`
+3. Actualizar la implementación existente del Web App a una nueva versión.
 
-## CORS
+No ejecutar `setupFedesCms()` para actualizar una base productiva ya inicializada.
 
-Apps Script no permite agregar arbitrariamente `Access-Control-Allow-Origin` a `ContentService` de forma confiable. Por eso:
-
-- las lecturas públicas desde React usan JSONP;
-- las escrituras públicas usan POST `no-cors` y confirmación posterior por lectura;
-- el panel usa `google.script.run`;
-- VADDAR consumirá server-to-server mediante POST autenticado.
-
-## Compatibilidad legacy
-
-Los endpoints `?action=...` históricos se conservan temporalmente para no romper la landing mientras se completa la transición. Las tablas legacy no son la fuente de verdad del backoffice 3.0.
-
-## Seguridad de onboarding
-
-La implementación nueva descarta campos de contraseña del onboarding antiguo y no los persiste en `ONB_Records.data_json`.
-
-La reparación legacy realizada el 2026-08-12 fue validada con cero claves sensibles en las filas activas nuevas. El backoffice además redacta recursivamente claves que parezcan contraseña, secreto o hash de recuperación antes de mostrarlas.
+En una instalación nueva sí corresponde ejecutar `setupFedesCms()` una única vez después del primer `clasp push`.
 
 ## API pública
 
@@ -139,13 +122,39 @@ La reparación legacy realizada el 2026-08-12 fue validada con cero claves sensi
 - `?api=lead-status&leadId=<uuid>`
 - `?api=lead-progress&leadId=<uuid>`
 - `?api=galicia-resume&token=<opaque-token>`
+- `?api=admin-result&requestId=<opaque>&clientSecret=<opaque>`
 
-El token de recuperación en claro sólo se entrega al flujo que genera el enlace. En Sheets se persiste únicamente su hash y fecha de expiración.
+## Comandos administrativos React
 
-## API interna / VADDAR
+POST al Web App con body JSON y `action: "adminCommand"`.
 
-La API interna usa POST autenticado mediante API key hasheada en Script Properties. La API key no debe exponerse en React ni almacenarse en la Sheet en claro.
+Operaciones soportadas:
+
+- `login`
+- `logout`
+- `workspace`
+- `dashboard`
+- `insights`
+- `queryTable`
+- `create`
+- `update`
+- `archive`
+- `restore`
+- `delete`
+- `duplicate`
+- `bulk`
+- `campaign360`
+- `lead360`
+- `onboarding360`
+- `changePassword`
+- `rotateVaddarApiKey`
+- `uploadMedia`
+- `issueResumeLink`
+
+## Compatibilidad legacy
+
+Los endpoints `?action=...` históricos se conservan temporalmente para no romper formularios existentes. Las tablas legacy no son fuente de verdad del backoffice.
 
 ## Migraciones
 
-Las migraciones manuales ya ejecutadas y sus resultados están registradas en `docs/MIGRATIONS.md` y en el historial Git. Los archivos temporales de repair/upgrade y las funciones `verify*` se eliminan del runtime una vez validados.
+Las reparaciones y upgrades manuales ya ejecutados están documentados en `docs/MIGRATIONS.md`. El runtime productivo no debe acumular funciones `verify*` ni scripts temporales de repair.
