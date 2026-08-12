@@ -65,7 +65,8 @@ function repairLegacyOnboardingV2() {
     );
 
     var step1 = email ? (step1ByEmail[email] || {}) : {};
-    if (Object.keys(step1).length) summary.step1Matched++;
+    var hasStep1 = Object.keys(step1).length > 0;
+    if (hasStep1) summary.step1Matched++;
     var step1Data = repairMapStep1_(step1);
 
     var formData = {};
@@ -75,9 +76,12 @@ function repairLegacyOnboardingV2() {
     formData.cuit = cuit;
     formData = repairSanitizeDeep_(formData);
 
-    var completed = safeBoolean_(progress.Completado);
-    if (!progress.CUIT && Object.keys(step1).length) completed = true;
-    var currentStep = safeNumber_(progress.Paso_Actual, Object.keys(step1).length ? 2 : 1);
+    // La hoja Step1 es evidencia más fuerte que OnboardingProgress: si existe una
+    // respuesta enviada de Step1, el proceso llegó al final aunque el tracking de
+    // progreso haya quedado obsoleto en Paso 1.
+    var completed = safeBoolean_(progress.Completado) || hasStep1;
+    var currentStep = safeNumber_(progress.Paso_Actual, hasStep1 ? 2 : 1);
+    if (hasStep1 && currentStep < 2) currentStep = 2;
     if (completed && currentStep < 2) currentStep = 2;
 
     var updatedSource = repairFirstNonEmpty_([
@@ -103,7 +107,7 @@ function repairLegacyOnboardingV2() {
           repaired_at: nowIso_()
         }
       }),
-      completed_at: completed ? safeString_(progress.Ultima_Actualizacion || updatedSource || nowIso_()) : ''
+      completed_at: completed ? safeString_(step1.Fecha || progress.Ultima_Actualizacion || updatedSource || nowIso_()) : ''
     };
 
     var matches = existingByCuit[cuit] || [];
@@ -124,8 +128,10 @@ function repairLegacyOnboardingV2() {
         cuit: repairNormalizeCuit_(row.cuit) || cuit,
         data_json: sanitizedExisting
       });
-      dbArchiveById_(APP.SHEETS.ONBOARDING, row.onboarding_id);
-      summary.duplicatesArchived++;
+      if (!safeString_(row.archived_at)) {
+        dbArchiveById_(APP.SHEETS.ONBOARDING, row.onboarding_id);
+        summary.duplicatesArchived++;
+      }
     });
 
     if (completed) summary.completed++; else summary.inProgress++;
@@ -147,6 +153,54 @@ function repairLegacyOnboardingV2() {
   audit_('system', 'system', APP.SHEETS.ONBOARDING, 'legacy-v2', 'repair', null, summary, 'manual_repair');
   Logger.log('Repair onboarding v2: ' + JSON.stringify(summary));
   return summary;
+}
+
+function verifyOnboardingRepairV2() {
+  var rows = dbReadAll_(APP.SHEETS.ONBOARDING, { includeArchived: true });
+  var active = rows.filter(function(row) { return !safeString_(row.archived_at); });
+  var seen = {};
+  var duplicateActiveCuits = [];
+  var result = {
+    totalRows: rows.length,
+    activeRows: active.length,
+    archivedRows: rows.length - active.length,
+    uniqueActiveCuits: 0,
+    duplicateActiveCuits: 0,
+    completed: 0,
+    inProgress: 0,
+    withCompany: 0,
+    withContact: 0,
+    withEmail: 0,
+    withStrategicAnswers: 0,
+    sensitiveDataJsonRows: 0
+  };
+
+  active.forEach(function(row) {
+    var cuit = repairNormalizeCuit_(row.cuit);
+    if (cuit) {
+      if (seen[cuit]) duplicateActiveCuits.push(cuit);
+      seen[cuit] = true;
+    }
+    if (safeBoolean_(row.is_completed) || safeString_(row.status) === 'completed') result.completed++;
+    else result.inProgress++;
+    if (safeString_(row.company_name)) result.withCompany++;
+    if (safeString_(row.contact_name)) result.withContact++;
+    if (sanitizeEmail_(row.email)) result.withEmail++;
+
+    var parsed = jsonParse_(row.data_json, {});
+    var formData = parsed.formData || {};
+    var hasAnswer = false;
+    for (var i = 1; i <= 20; i++) {
+      if (safeString_(formData['q' + i])) { hasAnswer = true; break; }
+    }
+    if (hasAnswer) result.withStrategicAnswers++;
+    if (repairContainsSensitiveKey_(parsed)) result.sensitiveDataJsonRows++;
+  });
+
+  result.uniqueActiveCuits = Object.keys(seen).length;
+  result.duplicateActiveCuits = duplicateActiveCuits.length;
+  Logger.log('Verify onboarding v2: ' + JSON.stringify(result));
+  return result;
 }
 
 function repairNormalizeCuit_(value) {
@@ -236,6 +290,21 @@ function repairSanitizeDeep_(value) {
     if (!sensitive) out[key] = repairSanitizeDeep_(value[key]);
   });
   return out;
+}
+
+function repairContainsSensitiveKey_(value) {
+  if (Array.isArray(value)) {
+    for (var i = 0; i < value.length; i++) if (repairContainsSensitiveKey_(value[i])) return true;
+    return false;
+  }
+  if (!value || typeof value !== 'object') return false;
+  var keys = Object.keys(value);
+  for (var j = 0; j < keys.length; j++) {
+    var normalized = safeString_(keys[j]).toLowerCase();
+    if (normalized.indexOf('password') >= 0 || normalized.indexOf('contraseña') >= 0 || normalized.indexOf('contrasena') >= 0) return true;
+    if (repairContainsSensitiveKey_(value[keys[j]])) return true;
+  }
+  return false;
 }
 
 function repairChooseKeeper_(rows, canonicalCuit) {
