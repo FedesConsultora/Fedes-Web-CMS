@@ -1,3 +1,14 @@
+function adminGetWorkspaceReact_(token) {
+  var workspace = adminGetWorkspace(token);
+  var leads = workspace.tables && workspace.tables.leads;
+  if (leads && leads.fields) {
+    leads.fields.forEach(function(field){
+      if (field.name === 'resume_expires_at' || field.name === 'resume_token_hash') field.readOnly = true;
+    });
+  }
+  return workspace;
+}
+
 function adminQueryTableList_(token, tableKey, query) {
   requireAdminSession_(token);
   var def = adminRequireTable_(tableKey);
@@ -93,7 +104,37 @@ function adminListProjection_(def, row) {
 function adminGetRecord_(token, tableKey, id) {
   requireAdminSession_(token);
   var def = adminRequireTable_(tableKey);
-  var row = dbFindById_(def.sheet, safeString_(id), {includeArchived:true});
+  var target = safeString_(id);
+  var row = dbFindOne_(def.sheet, function(item){ return String(item[def.pk]) === target; }, {includeArchived:true});
   if (!row) throw new Error('Registro no encontrado');
   return {success:true, record:adminSanitizeRowForUi_(def,row)};
+}
+
+function adminCreateDataReact_(token, tableKey, record) {
+  return adminCreateData(token, tableKey, adminProtectTechnicalFields_(tableKey, record));
+}
+
+function adminUpdateDataReact_(token, tableKey, id, record) {
+  return adminUpdateData(token, tableKey, id, adminProtectTechnicalFields_(tableKey, record));
+}
+
+function adminProtectTechnicalFields_(tableKey, record) {
+  var clean = Object.assign({}, record || {});
+  if (safeString_(tableKey) === 'leads') {
+    delete clean.resume_token_hash;
+    delete clean.resume_expires_at;
+  }
+  return clean;
+}
+
+function adminRestoreDataReact_(token, tableKey, id) {
+  requireAdminSession_(token);
+  var def = adminRequireTable_(tableKey);
+  if (def.deleteMode !== 'archive') throw new Error('Restauración no habilitada para ' + def.label);
+  var before = dbFindOne_(def.sheet, function(item){ return String(item[def.pk]) === String(id); }, {includeArchived:true});
+  if (!before) throw new Error('Registro no encontrado');
+  if (!safeString_(before.archived_at)) {
+    return {success:true, unchanged:true, record:adminSanitizeRowForUi_(def,before)};
+  }
+  return adminRestoreDataSafe(token, tableKey, id);
 }
