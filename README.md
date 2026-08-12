@@ -1,53 +1,53 @@
 # Fedes Landing CMS — Google Apps Script
 
-Reemplazo evolutivo del Apps Script actual de `FedesConsultora/FedesConsultora_Landing`.
+Backend/CMS de `FedesConsultora/FedesConsultora_Landing`, basado en Google Apps Script + Google Sheets + Google Drive.
 
 ## Qué resuelve
 
 - Google Sheets como base de datos específica de la landing.
-- Setup idempotente: crea las hojas y columnas automáticamente sin borrar las pestañas legacy.
-- Migración automática de las pestañas existentes cuando las encuentra.
+- Setup idempotente: crea hojas y columnas sin borrar pestañas legacy.
+- Migración inicial de datos legacy.
 - CMS con estados `draft / published / hidden / archived`.
 - Soft delete, restauración, duplicado y orden.
 - Historial `_AuditLog`.
 - Google Drive para imágenes.
-- Panel administrativo responsive con HtmlService + `google.script.run`.
-- Password hasheado en Script Properties.
-- Cache pública.
-- Locks para escrituras.
-- API pública con JSON/JSONP.
-- Compatibilidad temporal con las actions de la landing actual.
+- Panel administrativo con HtmlService + `google.script.run`.
+- Password de administración hasheado en Script Properties.
+- Cache pública y locks para escrituras.
+- API pública JSON/JSONP y API interna autenticada.
 - Funnel Galicia en dos pasos con persistencia temprana y scoring del lado servidor.
-- API interna preparada para que VADDAR consuma el CMS/leads más adelante.
+- Dedupe por campaña + email, autosave de respuestas y recuperación por token opaco.
+- `CRM_LeadMailings` preparado para secuencias A/B/C/D.
+- API interna preparada para futura integración con VADDAR.
 
-## Instalación
+## Instalación nueva
 
-1. Abrí el proyecto Apps Script actual que administra la Sheet de Fedes.
-2. Conservá una copia del código anterior antes de reemplazarlo.
-3. Creá los archivos `.gs` y `.html` incluidos en este paquete y pegá sus contenidos.
-4. Reemplazá `appsscript.json` por el incluido.
-5. Ejecutá `setupFedesCms()` desde el editor y autorizá Sheets/Drive.
-6. Abrí el registro de ejecución. Allí aparecen una contraseña temporal del panel y una API key VADDAR inicial. Guardalas de forma segura.
-7. Desplegá como Web App. Para la landing pública, el deployment debe permitir acceso sin login. Las operaciones administrativas siguen protegidas por contraseña + sesión y no exponen secretos en Sheets.
-8. Panel: `WEB_APP_URL?page=admin`.
-9. API: `WEB_APP_URL?api=health` y `WEB_APP_URL?api=bootstrap`.
+1. Abrí o creá el proyecto Apps Script asociado a la Sheet de Fedes.
+2. Configurá `.clasp.json` localmente con el `scriptId`; no lo commitees.
+3. Ejecutá `clasp push`.
+4. Ejecutá `setupFedesCms()` una sola vez y autorizá Sheets/Drive.
+5. Guardá de forma segura las credenciales iniciales generadas por el setup.
+6. Desplegá como Web App con acceso público para la landing. Las operaciones administrativas siguen protegidas por sesión.
+7. Panel: `WEB_APP_URL?page=admin`.
+8. Health: `WEB_APP_URL?api=health`.
 
-## Importante sobre CORS
+No ejecutes `setupFedesCms()` para upgrades de una base productiva ya inicializada salvo que el cambio haya sido diseñado específicamente para ello.
 
-Apps Script no ofrece un mecanismo confiable para agregar arbitrariamente `Access-Control-Allow-Origin` a `ContentService`. Por eso:
+## CORS
 
-- lecturas públicas desde React usan JSONP;
-- escrituras públicas críticas usan POST `no-cors` y luego confirman persistencia consultando `lead-status` con un UUID generado por el cliente;
-- el panel usa `google.script.run` y no necesita CORS;
+Apps Script no permite agregar arbitrariamente `Access-Control-Allow-Origin` a `ContentService` de forma confiable. Por eso:
+
+- las lecturas públicas desde React usan JSONP;
+- las escrituras públicas usan POST `no-cors` y confirmación posterior por lectura;
+- el panel usa `google.script.run`;
 - VADDAR consumirá server-to-server mediante POST autenticado.
 
-No vuelvas a usar un helper `setCorsHeaders(output)` que invoque `output.setHeader(...)`: `TextOutput` no expone ese método.
+No usar helpers que intenten llamar `setHeader(...)` sobre `TextOutput`.
 
-## Compatibilidad con la landing existente
+## Compatibilidad legacy
 
-Se mantienen temporalmente:
+GET temporales:
 
-GET:
 - `?action=blog`
 - `?action=galeria`
 - `?action=getProgress&cuit=...`
@@ -55,7 +55,8 @@ GET:
 - `?action=getAllContacts`
 - `?action=getAnalyticsTracking`
 
-POST:
+POST temporales:
+
 - `contact`
 - `onboardingStep0`
 - `onboardingStep1`
@@ -64,14 +65,18 @@ POST:
 - `addGaleriaFoto`
 - `deleteGaleriaFoto`
 
-Nuevos:
+Galicia:
+
 - `galiciaStart`
+- `galiciaProgress`
 - `galiciaComplete`
 - `galiciaMeetingClick`
 
 ## Seguridad de onboarding
 
-La implementación nueva descarta campos de contraseña enviados por el onboarding antiguo. No guarda contraseñas de Instagram, TikTok, Facebook ni passwords genéricas en Sheets.
+La implementación nueva descarta campos de contraseña del onboarding antiguo y no los persiste en `ONB_Records.data_json`.
+
+La reparación legacy realizada el 2026-08-12 fue validada con cero claves sensibles en las filas activas nuevas. El historial está documentado en `docs/MIGRATIONS.md`.
 
 ## API pública
 
@@ -85,8 +90,11 @@ La implementación nueva descarta campos de contraseña enviados por el onboardi
 - `?api=team`
 - `?api=campaign&key=galicia-2026`
 - `?api=lead-status&leadId=<uuid>`
+- `?api=galicia-resume&token=<opaque-token>`
 
-Todos aceptan `callback=<fn>` para JSONP.
+Las lecturas públicas aceptan `callback=<fn>` cuando se consumen vía JSONP.
+
+El token de recuperación en claro sólo se entrega al flujo que genera el enlace. En Sheets se persiste únicamente su hash y fecha de expiración.
 
 ## API interna / VADDAR
 
@@ -108,43 +116,19 @@ POST body JSON:
 { "action": "internalAudit", "apiKey": "...", "since": "2026-08-11T00:00:00.000Z" }
 ```
 
-Rotación: desde el panel/cliente administrativo llamar `adminRotateVaddarApiKey(token)`; la función interna de bootstrap no queda expuesta a `google.script.run`.
+La API key no debe exponerse en React ni almacenarse en la Sheet en claro.
 
-## Integración React/Vite
+## Migraciones
 
-Copiar `client/types.ts` y `client/cms.ts` al proyecto de la landing. Configurar el endpoint desde una variable de entorno, por ejemplo:
+Las migraciones manuales ya ejecutadas y sus resultados están registradas en `docs/MIGRATIONS.md` y en el historial Git.
 
-```env
-VITE_CMS_SCRIPT_URL=https://script.google.com/macros/s/DEPLOYMENT_ID/exec
-```
+Los archivos temporales de repair/upgrade y las funciones `verify*` se eliminan del runtime una vez validados. El esquema vigente siempre debe quedar consolidado en `Schema.gs` y el comportamiento productivo en los servicios normales.
 
-Luego:
+## Estado actual
 
-```ts
-const cms = new FedesCmsClient(import.meta.env.VITE_CMS_SCRIPT_URL)
-const bootstrap = await cms.getBootstrap()
-```
-
-## Migración legacy
-
-`setupFedesCms()` busca las hojas existentes:
-
-- Respuestas_Contacto
-- Tracking_Clicks
-- Publicaciones_Blog
-- Galeria_Fotos
-- OnboardingProgress
-- OnboardingEmpresas_Step0
-- OnboardingEmpresas_Step1
-
-Las lee y migra a las nuevas tablas sin eliminarlas. La migración queda marcada en Script Properties para no repetirse.
-
-## Qué NO hace todavía
-
-- No modifica automáticamente la landing React.
-- No dispara mailings A/B/C/D.
-- No integra Meta Pixel.
-- No sincroniza todavía con PostgreSQL/VADDAR.
-- No pretende reemplazar VADDAR como fuente corporativa futura.
-
-Esas son fases posteriores deliberadas.
+- Schema CRM: v3.
+- Backend: 2.2.0.
+- Recuperación Galicia por token: implementada en backend.
+- Autosave Galicia: implementado en backend; pendiente conectar la landing React.
+- Mailings A/B/C/D: estructura de datos preparada; proveedor/envío automático pendiente.
+- Integración PostgreSQL/VADDAR: pendiente.
