@@ -60,5 +60,9 @@ function getBootstrapPayload_() {
 }
 
 function getCampaignPublic_(key) {
-  return dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
+  var campaign=dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
+  if (!campaign) return null;
+  var out=normalizeRecordForOutput_(campaign);
+  if (key==='galicia-2026') out.landing_path='/regalo-galicia';
+  return out;
 }
