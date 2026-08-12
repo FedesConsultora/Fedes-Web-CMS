@@ -345,32 +345,6 @@ function getGaliciaResumeState_(token) {
   };
 }
 
-function verifyGaliciaRecoveryBackend() {
-  var lead=dbFindOne_(APP.SHEETS.LEADS,function(row){
-    return row.campaign_key===GALICIA.CAMPAIGN_KEY && safeString_(row.status)==='incomplete';
-  });
-  if (!lead) {
-    var none={success:true,tested:false,reason:'no_incomplete_lead'};
-    Logger.log('Verify Galicia recovery backend: '+JSON.stringify(none));
-    return none;
-  }
-  var previousHash=safeString_(lead.resume_token_hash);
-  var previousExpiry=safeString_(lead.resume_expires_at);
-  var issued=issueGaliciaResumeToken_(lead.lead_id,1,false);
-  var state=getGaliciaResumeState_(issued.token);
-  dbUpdateById_(APP.SHEETS.LEADS,lead.lead_id,{resume_token_hash:previousHash,resume_expires_at:previousExpiry});
-  var result={
-    success:true,
-    tested:true,
-    tokenResolved:!!state.found,
-    sameLead:state.found&&String(state.leadId)===String(lead.lead_id),
-    currentStep:state.found?state.currentStep:null,
-    recoveredAnswers:state.found?Object.keys(state.answers||{}).length:0
-  };
-  Logger.log('Verify Galicia recovery backend: '+JSON.stringify(result));
-  return result;
-}
-
 function resolveGaliciaLead_(incomingLeadId) {
   var id=safeString_(incomingLeadId);
   if (!id) return null;
