@@ -20,7 +20,7 @@ function seedSettings_() {
     ['seo_title','Fedes Consultora','string','seo','Título SEO'],
     ['seo_description','Fedes Consultora - Agencia de comunicación y marketing.','string','seo','Descripción actual; revisar según Plan 2026/27'],
     ['meeting_url','','url','commercial','URL de sesión de diagnóstico'],
-    ['feature_fedi_enabled','false','boolean','features','Fedi temporalmente desactivado'],
+    ['feature_fidi_enabled','false','boolean','features','Fidi temporalmente desactivado'],
     ['feature_galicia_banner_enabled','true','boolean','features','Banner Banco Galicia'],
   ];
   rows.forEach(function(r){
@@ -77,7 +77,7 @@ function seedCampaigns_() {
   seedIfMissing_(APP.SHEETS.CAMPAIGNS,'campaign_key','galicia-2026',{
     campaign_key:'galicia-2026',
     name:'Banco Galicia 2026 — Beneficio Onboarding',
-    landing_path:'/bono',
+    landing_path:'/regalo-galicia',
     benefit_label:'50% de bonificación en el primer mes del Onboarding',
     meeting_url:'',
     sort_order:10,
