@@ -1,7 +1,7 @@
 const APP = Object.freeze({
   NAME: 'Fedes Landing CMS',
-  VERSION: '2.0.0',
-  SCHEMA_VERSION: 2,
+  VERSION: '2.1.0',
+  SCHEMA_VERSION: 3,
   LOCALE: 'es-AR',
   TIMEZONE: 'America/Argentina/Buenos_Aires',
   CURRENCY: 'ARS',
@@ -32,6 +32,7 @@ const APP = Object.freeze({
     LEADS: 'CRM_Leads',
     LEAD_ANSWERS: 'CRM_LeadAnswers',
     LEAD_EVENTS: 'CRM_LeadEvents',
+    LEAD_MAILINGS: 'CRM_LeadMailings',
     ONBOARDING: 'ONB_Records',
     ANALYTICS: 'AN_Events',
   }),
