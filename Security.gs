@@ -50,13 +50,18 @@ function resetAdminPassword_() {
   return 'Nueva contraseña generada. Revisá el registro de ejecución.';
 }
 
+// Wrapper público para poder ejecutar el reset desde el selector del editor de Apps Script.
+// Las funciones cuyo nombre termina en "_" se mantienen como helpers internos.
+function resetAdminPassword() {
+  return resetAdminPassword_();
+}
+
 function rotateVaddarApiKey_() {
   var key = 'vdr_' + randomSecret_(32);
   setSecretHash_(APP.PROPS.VADDAR_API_KEY_HASH, APP.PROPS.VADDAR_API_KEY_SALT, key);
   Logger.log('Nueva API key para VADDAR: ' + key);
   return 'Nueva API key generada. Revisá el registro de ejecución.';
 }
-
 
 function adminChangePassword(token, newPassword) {
   var session = requireAdminSession_(token);
