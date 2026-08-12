@@ -22,7 +22,7 @@ function handleLegacyPost_(action,data){
   if(action==='saveProgress') return {success:true,data:saveOnboardingProgress_(data)};
   if(action==='track') return {success:true,data:saveTracking_(data)};
   if(action==='galiciaStart') return saveGaliciaLead_(data);
-  if(action==='galiciaProgress') return saveGaliciaProgress_(data);
+  if(action==='galiciaProgress') return saveGaliciaProgressSafe_(data);
   if(action==='galiciaComplete') return completeGaliciaLead_(data);
   if(action==='galiciaMeetingClick') return markGaliciaMeetingClick_(data);
   if(action==='addGaleriaFoto') {
