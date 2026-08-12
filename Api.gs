@@ -15,6 +15,7 @@ function handlePublicApi_(e) {
       case 'lead-status': payload=getLeadPublicStatus_(safeString_(e.parameter.leadId));break;
       case 'lead-progress': payload=getGaliciaProgressState_(safeString_(e.parameter.leadId));break;
       case 'galicia-resume': payload=getGaliciaResumeState_(safeString_(e.parameter.token));break;
+      case 'admin-result': payload=getAdminHttpResult_(safeString_(e.parameter.requestId),safeString_(e.parameter.clientSecret));break;
       default: payload=responseError_('API no válida','INVALID_API',404);
     }
     return responseJson_(payload,callback);
