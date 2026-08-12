@@ -2,36 +2,75 @@
 <html lang="es">
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
   <?!= include('AdminCss'); ?>
 </head>
 <body>
-  <div id="loginView" class="center-screen">
-    <form id="loginForm" class="card login-card">
-      <div class="brand">FEDES</div>
-      <h1>Landing CMS</h1>
-      <p>Administración de contenido, campañas y leads.</p>
-      <input id="password" type="password" placeholder="Contraseña" autocomplete="current-password" required>
-      <button type="submit">Ingresar</button>
-      <div id="loginError" class="error"></div>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <section id="loginView" class="login-screen">
+    <form id="loginForm" class="glass login-card">
+      <div class="login-logo"><span>F</span></div>
+      <div class="eyebrow">Backoffice · Fedes</div>
+      <h1>Centro de gestión</h1>
+      <p>Campañas, CRM, onboarding, sitio web, analítica y datos en un único panel.</p>
+      <label class="input-label" for="password">Contraseña</label>
+      <div class="input-wrap"><input id="password" type="password" placeholder="Ingresá tu contraseña" autocomplete="current-password" required></div>
+      <button type="submit" class="primary wide">Ingresar</button>
+      <div id="loginError" class="form-error"></div>
     </form>
-  </div>
-  <div id="appView" class="app hidden">
-    <aside class="sidebar">
-      <div class="sidebar-brand"><b>FEDES</b><span>CMS</span></div>
-      <button data-view="dashboard" class="nav active">Dashboard</button>
-      <div id="entityNav"></div>
-      <button data-view="leads" class="nav">Leads</button>
-      <button data-view="media" class="nav">Media</button>
-      <button data-view="audit" class="nav">Historial</button>
-      <button id="logoutBtn" class="nav logout">Salir</button>
+  </section>
+
+  <div id="appView" class="workspace hidden">
+    <aside class="sidebar glass">
+      <div class="brand-row">
+        <div class="mini-logo">F</div>
+        <div><b>FEDES</b><span>Backoffice</span></div>
+      </div>
+
+      <nav id="mainNav" class="nav-stack">
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Inicio</span></button>
+      </nav>
+
+      <div id="navGroups"></div>
+
+      <div class="sidebar-footer">
+        <div class="system-pill"><i></i><span id="appVersion">Conectado</span></div>
+        <button id="logoutBtn" class="nav-item logout"><span class="nav-icon">↪</span><span>Salir</span></button>
+      </div>
     </aside>
+
     <main class="main">
-      <header class="topbar"><div><h2 id="viewTitle">Dashboard</h2><small id="viewSubtitle"></small></div><button id="newBtn" class="primary hidden">+ Nuevo</button></header>
-      <section id="content"></section>
+      <header class="topbar glass">
+        <div class="topbar-copy">
+          <div id="breadcrumb" class="breadcrumb">Fedes / Inicio</div>
+          <h2 id="viewTitle">Inicio</h2>
+          <p id="viewSubtitle">Visión consolidada de la base de datos.</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="refreshBtn" class="btn ghost" title="Actualizar">↻ <span>Actualizar</span></button>
+          <button id="newBtn" class="btn primary hidden">＋ Alta</button>
+        </div>
+      </header>
+
+      <section id="content" class="content"></section>
     </main>
   </div>
-  <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
+
+  <div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal-panel glass" role="dialog" aria-modal="true">
+      <button id="modalClose" class="modal-close" aria-label="Cerrar">×</button>
+      <div id="modalBody"></div>
+    </section>
+  </div>
+
+  <div id="toastStack" class="toast-stack"></div>
+  <div id="loadingOverlay" class="loading-overlay hidden"><div class="loader"></div><span>Procesando…</span></div>
+
   <?!= include('AdminJs'); ?>
 </body>
 </html>
