@@ -12,9 +12,10 @@ const SCHEMA = Object.freeze({
   'CMS_Media': ['media_id','file_id','file_name','mime_type','file_size','drive_url','public_url','alt_text','entity_type','entity_id','sort_order','status','metadata_json','created_at','updated_at','archived_at'],
   'CRM_Contacts': ['contact_id','created_at','updated_at','full_name','email','phone','company','message','source','page_path','status','metadata_json','archived_at'],
   'CRM_Campaigns': ['campaign_id','campaign_key','name','landing_path','benefit_label','meeting_url','starts_at','ends_at','sort_order','featured','status','metadata_json','created_at','updated_at','archived_at'],
-  'CRM_Leads': ['lead_id','campaign_key','source','status','stage','full_name','email','company','website','phone','score_total','knockout','classification','benefit','mailing_segment','utm_source','utm_medium','utm_campaign','referrer','consent_marketing','created_at','updated_at','completed_at','archived_at','metadata_json'],
+  'CRM_Leads': ['lead_id','campaign_key','source','status','stage','full_name','email','company','website','phone','score_total','knockout','classification','benefit','mailing_segment','utm_source','utm_medium','utm_campaign','referrer','consent_marketing','current_step','last_question_key','last_activity_at','manual_review_status','owner','next_action_at','resume_token_hash','resume_expires_at','meeting_status','meeting_clicked_at','created_at','updated_at','completed_at','archived_at','metadata_json'],
   'CRM_LeadAnswers': ['answer_id','lead_id','campaign_key','question_key','answer_key','answer_text','score','knockout','created_at','updated_at','archived_at'],
   'CRM_LeadEvents': ['event_id','lead_id','campaign_key','event_type','page_path','source','metadata_json','created_at'],
+  'CRM_LeadMailings': ['mailing_id','lead_id','campaign_key','segment','template_key','sequence_no','status','scheduled_at','sent_at','opened_at','clicked_at','provider','provider_message_id','attempt_count','error_message','metadata_json','created_at','updated_at','archived_at'],
   'ONB_Records': ['onboarding_id','cuit','company_name','contact_name','email','taxpayer_type','current_step','status','is_completed','data_json','created_at','updated_at','completed_at','archived_at'],
   'AN_Events': ['event_id','category','label','value','page_path','session_id','source','metadata_json','created_at'],
 });
@@ -35,6 +36,7 @@ const PRIMARY_KEYS = Object.freeze({
   'CRM_Leads': 'lead_id',
   'CRM_LeadAnswers': 'answer_id',
   'CRM_LeadEvents': 'event_id',
+  'CRM_LeadMailings': 'mailing_id',
   'ONB_Records': 'onboarding_id',
   'AN_Events': 'event_id',
 });
