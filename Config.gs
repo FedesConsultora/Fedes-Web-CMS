@@ -1,6 +1,6 @@
 const APP = Object.freeze({
   NAME: 'Fedes Landing CMS',
-  VERSION: '2.2.0',
+  VERSION: '2.3.0',
   SCHEMA_VERSION: 3,
   LOCALE: 'es-AR',
   TIMEZONE: 'America/Argentina/Buenos_Aires',
