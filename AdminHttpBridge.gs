@@ -63,7 +63,9 @@ function adminExecuteHttpCommand_(data) {
     case 'insights':
       return adminGetInsights(token);
     case 'queryTable':
-      return adminQueryTable(token, safeString_(payload.tableKey), payload.query || {});
+      return adminQueryTableList_(token, safeString_(payload.tableKey), payload.query || {});
+    case 'record':
+      return adminGetRecord_(token, safeString_(payload.tableKey), safeString_(payload.id));
     case 'create':
       return adminCreateData(token, safeString_(payload.tableKey), payload.record || {});
     case 'update':
