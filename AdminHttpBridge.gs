@@ -57,7 +57,7 @@ function adminExecuteHttpCommand_(data) {
     case 'logout':
       return adminLogout(token);
     case 'workspace':
-      return adminGetWorkspace(token);
+      return adminGetWorkspaceReact_(token);
     case 'dashboard':
       return adminGetDashboardV2(token);
     case 'insights':
@@ -67,13 +67,13 @@ function adminExecuteHttpCommand_(data) {
     case 'record':
       return adminGetRecord_(token, safeString_(payload.tableKey), safeString_(payload.id));
     case 'create':
-      return adminCreateData(token, safeString_(payload.tableKey), payload.record || {});
+      return adminCreateDataReact_(token, safeString_(payload.tableKey), payload.record || {});
     case 'update':
-      return adminUpdateData(token, safeString_(payload.tableKey), safeString_(payload.id), payload.record || {});
+      return adminUpdateDataReact_(token, safeString_(payload.tableKey), safeString_(payload.id), payload.record || {});
     case 'archive':
       return adminArchiveData(token, safeString_(payload.tableKey), safeString_(payload.id));
     case 'restore':
-      return adminRestoreDataSafe(token, safeString_(payload.tableKey), safeString_(payload.id));
+      return adminRestoreDataReact_(token, safeString_(payload.tableKey), safeString_(payload.id));
     case 'delete':
       return adminHardDeleteData(token, safeString_(payload.tableKey), safeString_(payload.id));
     case 'duplicate':
