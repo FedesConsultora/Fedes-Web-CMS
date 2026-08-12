@@ -13,6 +13,7 @@ function handlePublicApi_(e) {
       case 'testimonials': payload=publishedRows_(APP.SHEETS.TESTIMONIALS);break;
       case 'campaign': payload=getCampaignPublic_(safeString_(e.parameter.key))||null;break;
       case 'lead-status': payload=getLeadPublicStatus_(safeString_(e.parameter.leadId));break;
+      case 'lead-progress': payload=getGaliciaProgressState_(safeString_(e.parameter.leadId));break;
       case 'galicia-resume': payload=getGaliciaResumeState_(safeString_(e.parameter.token));break;
       default: payload=responseError_('API no válida','INVALID_API',404);
     }
