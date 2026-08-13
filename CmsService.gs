@@ -38,6 +38,12 @@ function enrichMedia_(rows, mediaMap, fieldName) {
   });
 }
 
+function normalizePublicCampaign_(campaign) {
+  var out=normalizeRecordForOutput_(campaign||{});
+  if (out.campaign_key==='galicia-2026') out.landing_path='/bonificacion-galicia';
+  return out;
+}
+
 function getBootstrapPayload_() {
   var cache=CacheService.getScriptCache();
   var cached=cache.get('bootstrap');
@@ -53,7 +59,7 @@ function getBootstrapPayload_() {
     team:enrichMedia_(publishedRows_(APP.SHEETS.TEAM),media),
     blog:enrichMedia_(publishedRows_(APP.SHEETS.BLOG),media),
     gallery:enrichMedia_(publishedRows_(APP.SHEETS.GALLERY),media),
-    campaigns:publishedRows_(APP.SHEETS.CAMPAIGNS),
+    campaigns:publishedRows_(APP.SHEETS.CAMPAIGNS).map(normalizePublicCampaign_),
   };
   cache.put('bootstrap',JSON.stringify(payload),APP.CACHE_TTL_SECONDS);
   return payload;
@@ -62,7 +68,5 @@ function getBootstrapPayload_() {
 function getCampaignPublic_(key) {
   var campaign=dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
   if (!campaign) return null;
-  var out=normalizeRecordForOutput_(campaign);
-  if (key==='galicia-2026') out.landing_path='/bonificacion-galicia';
-  return out;
+  return normalizePublicCampaign_(campaign);
 }
