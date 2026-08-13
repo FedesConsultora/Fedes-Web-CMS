@@ -69,7 +69,7 @@ function adminIssueResumeLink_(token,leadId,ttlHours){
   if(safeString_(lead.campaign_key)!==GALICIA.CAMPAIGN_KEY)throw new Error('La recuperación automática todavía no está configurada para esta campaña.');
   var issued=issueGaliciaResumeToken_(leadId,ttlHours,true);
   audit_(session.actor,'admin',APP.SHEETS.LEADS,leadId,'issue_resume_link',null,{expiresAt:issued.expiresAt},'react_admin');
-  return{success:true,leadId:issued.leadId,expiresAt:issued.expiresAt,relativeUrl:'/bonificacion-galicia?resume='+encodeURIComponent(issued.token)+'&source=galicia_recovery_email&utm_source=galicia&utm_medium=email&utm_campaign=beneficio_galicia_2026'};
+  return{success:true,leadId:issued.leadId,expiresAt:issued.expiresAt,relativeUrl:'/regalo-galicia?resume='+encodeURIComponent(issued.token)+'&source=galicia_recovery_email&utm_source=galicia&utm_medium=email&utm_campaign=beneficio_galicia_2026'};
 }
 function adminHttpOpaqueId_(value){return /^[A-Za-z0-9_-]{20,120}$/.test(safeString_(value));}
 function adminHttpResultKey_(requestId,clientSecret){return'admin_http:'+digestHex_(safeString_(requestId)+':'+safeString_(clientSecret));}
