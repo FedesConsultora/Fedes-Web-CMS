@@ -77,7 +77,7 @@ function seedCampaigns_() {
   seedIfMissing_(APP.SHEETS.CAMPAIGNS,'campaign_key','galicia-2026',{
     campaign_key:'galicia-2026',
     name:'Banco Galicia 2026 — Beneficio Onboarding',
-    landing_path:'/regalo-galicia',
+    landing_path:'/bonificacion-galicia',
     benefit_label:'50% de bonificación en el primer mes del Onboarding',
     meeting_url:'',
     sort_order:10,
