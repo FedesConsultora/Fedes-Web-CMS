@@ -63,6 +63,6 @@ function getCampaignPublic_(key) {
   var campaign=dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
   if (!campaign) return null;
   var out=normalizeRecordForOutput_(campaign);
-  if (key==='galicia-2026') out.landing_path='/regalo-galicia';
+  if (key==='galicia-2026') out.landing_path='/bonificacion-galicia';
   return out;
 }
