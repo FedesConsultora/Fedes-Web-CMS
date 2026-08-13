@@ -98,6 +98,23 @@ function syncGaliciaMailingQueue() {
   return summary;
 }
 
+function installGaliciaMailingQueueTrigger() {
+  var handler='syncGaliciaMailingQueue';
+  ScriptApp.getProjectTriggers().forEach(function(trigger){
+    if (trigger.getHandlerFunction()===handler) ScriptApp.deleteTrigger(trigger);
+  });
+  ScriptApp.newTrigger(handler).timeBased().everyHours(1).create();
+  return {success:true,handler:handler,frequency:'hourly',mode:'queue_only'};
+}
+
+function removeGaliciaMailingQueueTrigger() {
+  var handler='syncGaliciaMailingQueue',removed=0;
+  ScriptApp.getProjectTriggers().forEach(function(trigger){
+    if (trigger.getHandlerFunction()===handler) { ScriptApp.deleteTrigger(trigger); removed++; }
+  });
+  return {success:true,removed:removed};
+}
+
 function galiciaMailingSegmentForLead_(lead) {
   if (safeString_(lead.status)!=='complete') return 'D';
   var segment=safeString_(lead.mailing_segment).toUpperCase();
