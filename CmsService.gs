@@ -44,6 +44,21 @@ function normalizePublicCampaign_(campaign) {
   return out;
 }
 
+function ensureGaliciaCampaignPath_(campaign) {
+  if (!campaign || campaign.campaign_key!=='galicia-2026') return campaign;
+  if (safeString_(campaign.landing_path)==='/bonificacion-galicia') return campaign;
+  if (!safeString_(campaign.campaign_id)) return campaign;
+
+  try {
+    var saved=dbUpdateById_(APP.SHEETS.CAMPAIGNS,campaign.campaign_id,{landing_path:'/bonificacion-galicia'});
+    if (saved) audit_('system','system',APP.SHEETS.CAMPAIGNS,campaign.campaign_id,'normalize_path',campaign,saved,'campaign_compat');
+    return saved||campaign;
+  } catch (err) {
+    console.warn('[Galicia] No se pudo normalizar landing_path',err);
+    return campaign;
+  }
+}
+
 function getBootstrapPayload_() {
   var cache=CacheService.getScriptCache();
   var cached=cache.get('bootstrap');
@@ -68,5 +83,6 @@ function getBootstrapPayload_() {
 function getCampaignPublic_(key) {
   var campaign=dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
   if (!campaign) return null;
+  campaign=ensureGaliciaCampaignPath_(campaign);
   return normalizePublicCampaign_(campaign);
 }
