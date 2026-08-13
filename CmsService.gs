@@ -1,3 +1,6 @@
+var GALICIA_PRODUCTION_PATH = '/regalo-galicia';
+var GALICIA_EVENT_NAME = 'Pymes que venden más: cómo arrancar de cero con publicidad, automatización e IA.';
+
 function publishedRows_(sheetName) {
   return sortPublished_(dbReadAll_(sheetName).filter(function(r){ return safeString_(r.status) === APP.STATUS.PUBLISHED; }));
 }
@@ -40,21 +43,45 @@ function enrichMedia_(rows, mediaMap, fieldName) {
 
 function normalizePublicCampaign_(campaign) {
   var out=normalizeRecordForOutput_(campaign||{});
-  if (out.campaign_key==='galicia-2026') out.landing_path='/regalo-galicia';
+  if (out.campaign_key==='galicia-2026') {
+    out.landing_path=GALICIA_PRODUCTION_PATH;
+    out.name=safeString_(out.name).replace(/Banco Galicia/g,'Galicia');
+    var metadata=jsonParse_(out.metadata_json,{});
+    if (!metadata || typeof metadata!=='object' || Array.isArray(metadata)) metadata={};
+    metadata.event=GALICIA_EVENT_NAME;
+    if (!safeNumber_(metadata.maxQualifiedSlots,0)) metadata.maxQualifiedSlots=10;
+    out.metadata_json=jsonStringify_(metadata);
+  }
   return out;
 }
 
 function ensureGaliciaCampaignPath_(campaign) {
   if (!campaign || campaign.campaign_key!=='galicia-2026') return campaign;
-  if (safeString_(campaign.landing_path)==='/regalo-galicia') return campaign;
   if (!safeString_(campaign.campaign_id)) return campaign;
 
+  var patch={};
+  if (safeString_(campaign.landing_path)!==GALICIA_PRODUCTION_PATH) patch.landing_path=GALICIA_PRODUCTION_PATH;
+
+  var currentName=safeString_(campaign.name);
+  var normalizedName=currentName.replace(/Banco Galicia/g,'Galicia');
+  if (normalizedName!==currentName) patch.name=normalizedName;
+
+  var metadata=jsonParse_(campaign.metadata_json,{});
+  if (!metadata || typeof metadata!=='object' || Array.isArray(metadata)) metadata={};
+  var metadataChanged=false;
+  if (safeString_(metadata.event)!==GALICIA_EVENT_NAME) { metadata.event=GALICIA_EVENT_NAME; metadataChanged=true; }
+  if (!safeNumber_(metadata.maxQualifiedSlots,0)) { metadata.maxQualifiedSlots=10; metadataChanged=true; }
+  if (metadataChanged) patch.metadata_json=jsonStringify_(metadata);
+
+  if (!Object.keys(patch).length) return campaign;
+
   try {
-    var saved=dbUpdateById_(APP.SHEETS.CAMPAIGNS,campaign.campaign_id,{landing_path:'/regalo-galicia'});
-    if (saved) audit_('system','system',APP.SHEETS.CAMPAIGNS,campaign.campaign_id,'normalize_path',campaign,saved,'campaign_compat');
+    var saved=dbUpdateById_(APP.SHEETS.CAMPAIGNS,campaign.campaign_id,patch);
+    if (saved) audit_('system','system',APP.SHEETS.CAMPAIGNS,campaign.campaign_id,'normalize_production_config',campaign,saved,'campaign_compat');
+    invalidatePublicCache_();
     return saved||campaign;
   } catch (err) {
-    console.warn('[Galicia] No se pudo normalizar landing_path',err);
+    console.warn('[Galicia] No se pudo normalizar configuración productiva',err);
     return campaign;
   }
 }
