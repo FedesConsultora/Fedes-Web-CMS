@@ -1,5 +1,7 @@
 function adminGetWorkspaceReact_(token) {
   var workspace = adminGetWorkspace(token);
+  var galicia = dbFindOne_(APP.SHEETS.CAMPAIGNS, function(row){ return safeString_(row.campaign_key) === GALICIA.CAMPAIGN_KEY; }, {includeArchived:true});
+  if (galicia) ensureGaliciaCampaignPath_(galicia);
   var leads = workspace.tables && workspace.tables.leads;
   if (leads && leads.fields) {
     leads.fields.forEach(function(field){
@@ -35,6 +37,22 @@ function adminListProjection_(def,row){var out={},fields=[def.pk].concat(def.lis
 function adminGetRecord_(token,tableKey,id){requireAdminSession_(token);var def=adminRequireTable_(tableKey),target=safeString_(id),row=dbFindOne_(def.sheet,function(item){return String(item[def.pk])===target;},{includeArchived:true});if(!row)throw new Error('Registro no encontrado');return{success:true,record:adminSanitizeRowForUi_(def,row)};}
 function adminCreateDataReact_(token,tableKey,record){return adminCreateData(token,tableKey,adminProtectTechnicalFields_(tableKey,record));}
 function adminUpdateDataReact_(token,tableKey,id,record){return adminUpdateData(token,tableKey,id,adminProtectTechnicalFields_(tableKey,record));}
-function adminProtectTechnicalFields_(tableKey,record){var clean=Object.assign({},record||{});if(safeString_(tableKey)==='leads'){delete clean.resume_token_hash;delete clean.resume_expires_at;}return clean;}
+function adminProtectTechnicalFields_(tableKey,record){
+  var key=safeString_(tableKey),clean=Object.assign({},record||{});
+  if(key==='leads'){
+    delete clean.resume_token_hash;
+    delete clean.resume_expires_at;
+  }
+  if(key==='campaigns'&&safeString_(clean.campaign_key)===GALICIA.CAMPAIGN_KEY){
+    clean.landing_path=GALICIA_PRODUCTION_PATH;
+    clean.name=safeString_(clean.name).replace(/Banco Galicia/g,'Galicia');
+    var metadata=jsonParse_(clean.metadata_json,{});
+    if(!metadata||typeof metadata!=='object'||Array.isArray(metadata))metadata={};
+    metadata.event=GALICIA_EVENT_NAME;
+    if(!safeNumber_(metadata.maxQualifiedSlots,0))metadata.maxQualifiedSlots=10;
+    clean.metadata_json=jsonStringify_(metadata);
+  }
+  return clean;
+}
 function adminRestoreDataReact_(token,tableKey,id){requireAdminSession_(token);var def=adminRequireTable_(tableKey);if(def.deleteMode!=='archive')throw new Error('Restauración no habilitada para '+def.label);var before=dbFindOne_(def.sheet,function(item){return String(item[def.pk])===String(id);},{includeArchived:true});if(!before)throw new Error('Registro no encontrado');if(!safeString_(before.archived_at))return{success:true,unchanged:true,record:adminSanitizeRowForUi_(def,before)};return adminRestoreDataSafe(token,tableKey,id);}
 function adminBulkActionReact_(token,tableKey,ids,action){requireAdminSession_(token);ids=Array.isArray(ids)?ids:[];if(ids.length>100)throw new Error('Máximo 100 registros por operación');var results=[];ids.forEach(function(id){try{if(action==='archive')results.push(adminArchiveData(token,tableKey,id));else if(action==='restore')results.push(adminRestoreDataReact_(token,tableKey,id));else if(action==='delete')results.push(adminHardDeleteData(token,tableKey,id));else results.push({success:false,id:id,error:'Acción inválida'});}catch(err){results.push({success:false,id:id,error:err.message});}});return{success:true,results:results};}
