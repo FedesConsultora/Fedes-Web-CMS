@@ -1,4 +1,4 @@
-var GALICIA_PRODUCTION_PATH = '/regalo-galicia';
+var GALICIA_PRODUCTION_PATH = '/bonificacion-galicia';
 var GALICIA_EVENT_NAME = 'Pymes que venden más: cómo arrancar de cero con publicidad, automatización e IA.';
 
 function publishedRows_(sheetName) {
