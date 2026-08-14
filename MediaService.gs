@@ -13,7 +13,23 @@ function mediaPublicImageUrl_(recordOrFileId) {
     fileId=safeString_(recordOrFileId);
   }
   if (!fileId) return '';
-  return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(fileId)+'&sz=w2000';
+  return 'https://lh3.googleusercontent.com/d/'+encodeURIComponent(fileId)+'=w2000';
+}
+
+function ensureMediaPublicSharing_(file) {
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);
+  } catch(err) {
+    console.warn('[Media] No se pudo cambiar sharing de Drive',err);
+  }
+
+  var access=null;
+  try { access=file.getSharingAccess(); } catch(err2) { console.warn('[Media] No se pudo leer sharing de Drive',err2); }
+  var isPublic=access===DriveApp.Access.ANYONE_WITH_LINK||access===DriveApp.Access.ANYONE;
+  if (!isPublic) {
+    throw new Error('Google Drive guardó el archivo pero no permite publicarlo con enlace. Revisá la política de uso compartido del Workspace antes de usarlo en la web pública.');
+  }
+  return true;
 }
 
 function uploadMediaAdmin(token,payload) {
@@ -28,11 +44,11 @@ function uploadMediaAdmin(token,payload) {
   var name=safeString_(payload.fileName)||('media-'+Date.now());
   var blob=Utilities.newBlob(bytes,mime,name);
   var file=mediaFolder_().createFile(blob);
-  try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW); } catch(err) { console.warn('[Media] No se pudo cambiar sharing de Drive',err); }
+  ensureMediaPublicSharing_(file);
   var publicUrl=mediaPublicImageUrl_(file.getId());
   var rec=dbInsert_(APP.SHEETS.MEDIA,{
     file_id:file.getId(),file_name:name,mime_type:mime,file_size:bytes.length,drive_url:file.getUrl(),public_url:publicUrl,alt_text:safeString_(payload.altText),
-    entity_type:safeString_(payload.entityType),entity_id:safeString_(payload.entityId),sort_order:safeNumber_(payload.sortOrder,0),status:'published',metadata_json:jsonStringify_({uploadedBy:session.actor})
+    entity_type:safeString_(payload.entityType),entity_id:safeString_(payload.entityId),sort_order:safeNumber_(payload.sortOrder,0),status:'published',metadata_json:jsonStringify_({uploadedBy:session.actor,sharing:'anyone_with_link'})
   });
   audit_(session.actor,'admin',APP.SHEETS.MEDIA,rec.media_id,'upload',null,rec,'admin_panel');
   invalidatePublicCache_();
