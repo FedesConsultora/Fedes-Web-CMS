@@ -33,7 +33,13 @@ function adminQueryTableList_(token, tableKey, query) {
   return {success:true,tableKey:tableKey,total:total,page:page,pageSize:pageSize,pages:Math.max(1,Math.ceil(total/pageSize)),rows:rows.slice(start,start+pageSize).map(function(row){return adminListProjection_(def,row);}),facets:facets};
 }
 
-function adminListProjection_(def,row){var out={},fields=[def.pk].concat(def.list||[]);if((SCHEMA[def.sheet]||[]).indexOf('archived_at')>=0)fields.push('archived_at');fields.forEach(function(field){if(out[field]===undefined)out[field]=row[field];});return out;}
+function adminListProjection_(def,row){
+  var out={},fields=[def.pk].concat(def.list||[]);
+  if((SCHEMA[def.sheet]||[]).indexOf('archived_at')>=0)fields.push('archived_at');
+  if(def.sheet===APP.SHEETS.MEDIA)fields=fields.concat(['file_id','drive_url','public_url']);
+  fields.forEach(function(field){if(out[field]===undefined)out[field]=row[field];});
+  return out;
+}
 function adminGetRecord_(token,tableKey,id){requireAdminSession_(token);var def=adminRequireTable_(tableKey),target=safeString_(id),row=dbFindOne_(def.sheet,function(item){return String(item[def.pk])===target;},{includeArchived:true});if(!row)throw new Error('Registro no encontrado');return{success:true,record:adminSanitizeRowForUi_(def,row)};}
 function adminCreateDataReact_(token,tableKey,record){return adminCreateData(token,tableKey,adminProtectTechnicalFields_(tableKey,record));}
 function adminUpdateDataReact_(token,tableKey,id,record){return adminUpdateData(token,tableKey,id,adminProtectTechnicalFields_(tableKey,record));}
