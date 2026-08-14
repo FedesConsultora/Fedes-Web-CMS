@@ -40,7 +40,13 @@ function adminListProjection_(def,row){
   fields.forEach(function(field){if(out[field]===undefined)out[field]=row[field];});
   return out;
 }
-function adminGetRecord_(token,tableKey,id){requireAdminSession_(token);var def=adminRequireTable_(tableKey),target=safeString_(id),row=dbFindOne_(def.sheet,function(item){return String(item[def.pk])===target;},{includeArchived:true});if(!row)throw new Error('Registro no encontrado');return{success:true,record:adminSanitizeRowForUi_(def,row)};}
+function adminGetRecord_(token,tableKey,id){
+  requireAdminSession_(token);
+  var def=adminRequireTable_(tableKey),target=safeString_(id),row=dbFindOne_(def.sheet,function(item){return String(item[def.pk])===target;},{includeArchived:true});
+  if(!row)throw new Error('Registro no encontrado');
+  if(def.sheet===APP.SHEETS.MEDIA)row=repairMediaRecordPublic_(row);
+  return{success:true,record:adminSanitizeRowForUi_(def,row)};
+}
 function adminCreateDataReact_(token,tableKey,record){return adminCreateData(token,tableKey,adminProtectTechnicalFields_(tableKey,record));}
 function adminUpdateDataReact_(token,tableKey,id,record){return adminUpdateData(token,tableKey,id,adminProtectTechnicalFields_(tableKey,record));}
 function adminProtectTechnicalFields_(tableKey,record){
