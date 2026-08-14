@@ -41,17 +41,52 @@ function enrichMedia_(rows, mediaMap, fieldName) {
   });
 }
 
-function normalizePublicCampaign_(campaign) {
+function normalizePublicCampaign_(campaign, mediaMap) {
   var out=normalizeRecordForOutput_(campaign||{});
+  mediaMap=mediaMap||publicMediaMap_();
+  var metadata=jsonParse_(out.metadata_json,{});
+  if (!metadata || typeof metadata!=='object' || Array.isArray(metadata)) metadata={};
+
   if (out.campaign_key==='galicia-2026') {
     out.landing_path=GALICIA_PRODUCTION_PATH;
     out.name=safeString_(out.name).replace(/Banco Galicia/g,'Galicia');
-    var metadata=jsonParse_(out.metadata_json,{});
-    if (!metadata || typeof metadata!=='object' || Array.isArray(metadata)) metadata={};
     metadata.event=GALICIA_EVENT_NAME;
     if (!safeNumber_(metadata.maxQualifiedSlots,0)) metadata.maxQualifiedSlots=10;
-    out.metadata_json=jsonStringify_(metadata);
   }
+
+  var banner=metadata.hero_banner;
+  if (banner && typeof banner==='object' && !Array.isArray(banner)) {
+    var desktopMedia=mediaMap[safeString_(banner.desktop_media_id)]||null;
+    var mobileMedia=mediaMap[safeString_(banner.mobile_media_id)]||null;
+    var desktopUrl=desktopMedia ? (desktopMedia.public_url || desktopMedia.drive_url || '') : '';
+    var mobileUrl=mobileMedia ? (mobileMedia.public_url || mobileMedia.drive_url || '') : '';
+
+    var defaultClickUrl='';
+    var path=safeString_(out.landing_path)||'/';
+    if (out.campaign_key==='galicia-2026') {
+      defaultClickUrl='/bonificacion-galicia?source=home_banner&utm_source=fedesconsultora&utm_medium=website&utm_campaign=beneficio_galicia_2026';
+    } else if (path && path!=='/') {
+      var sep=path.indexOf('?')>=0?'&':'?';
+      defaultClickUrl=path+sep+'source=home_banner&utm_source=fedesconsultora&utm_medium=website&utm_campaign='+encodeURIComponent(out.campaign_key||'campaign');
+    }
+
+    out.hero_banner={
+      enabled: safeBoolean_(banner.enabled),
+      desktop_media_id: safeString_(banner.desktop_media_id),
+      mobile_media_id: safeString_(banner.mobile_media_id),
+      desktop_url: desktopUrl,
+      mobile_url: mobileUrl,
+      alt: safeString_(banner.alt),
+      display_seconds: safeNumber_(banner.display_seconds, 6),
+      show_once_per_session: banner.show_once_per_session !== false,
+      click_url: safeString_(banner.click_url) || defaultClickUrl,
+      open_in_new_tab: safeBoolean_(banner.open_in_new_tab)
+    };
+  } else {
+    out.hero_banner=null;
+  }
+
+  out.metadata_json=jsonStringify_(metadata);
   return out;
 }
 
@@ -101,15 +136,24 @@ function getBootstrapPayload_() {
     team:enrichMedia_(publishedRows_(APP.SHEETS.TEAM),media),
     blog:enrichMedia_(publishedRows_(APP.SHEETS.BLOG),media),
     gallery:enrichMedia_(publishedRows_(APP.SHEETS.GALLERY),media),
-    campaigns:publishedRows_(APP.SHEETS.CAMPAIGNS).map(normalizePublicCampaign_),
+    campaigns:publishedRows_(APP.SHEETS.CAMPAIGNS).map(function(c){ return normalizePublicCampaign_(c, media); }),
   };
   cache.put('bootstrap',JSON.stringify(payload),APP.CACHE_TTL_SECONDS);
   return payload;
+}
+
+function getCampaignsPublic_() {
+  var media=publicMediaMap_();
+  return publishedRows_(APP.SHEETS.CAMPAIGNS).map(function(c){
+    c=ensureGaliciaCampaignPath_(c);
+    return normalizePublicCampaign_(c, media);
+  });
 }
 
 function getCampaignPublic_(key) {
   var campaign=dbFindOne_(APP.SHEETS.CAMPAIGNS,function(r){ return r.campaign_key===key && r.status==='published'; });
   if (!campaign) return null;
   campaign=ensureGaliciaCampaignPath_(campaign);
-  return normalizePublicCampaign_(campaign);
+  return normalizePublicCampaign_(campaign, publicMediaMap_());
 }
+

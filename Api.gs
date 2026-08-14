@@ -12,6 +12,7 @@ function handlePublicApi_(e) {
       case 'team': payload=publishedRows_(APP.SHEETS.TEAM);break;
       case 'testimonials': payload=publishedRows_(APP.SHEETS.TESTIMONIALS);break;
       case 'campaign': payload=getCampaignPublic_(safeString_(e.parameter.key))||null;break;
+      case 'campaigns': payload=getCampaignsPublic_();break;
       case 'lead-status': payload=getLeadPublicStatus_(safeString_(e.parameter.leadId));break;
       case 'lead-progress': payload=getGaliciaProgressState_(safeString_(e.parameter.leadId));break;
       case 'galicia-resume': payload=getGaliciaResumeState_(safeString_(e.parameter.token));break;
