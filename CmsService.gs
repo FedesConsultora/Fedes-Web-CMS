@@ -28,7 +28,8 @@ function contentObject_() {
 function publicMediaMap_() {
   var out={};
   publishedRows_(APP.SHEETS.MEDIA).forEach(function(r){
-    var media=normalizeRecordForOutput_(r);
+    var repaired=repairMediaRecordPublic_(r)||r;
+    var media=normalizeRecordForOutput_(repaired);
     var resolved=mediaPublicImageUrl_(media);
     if (resolved) media.public_url=resolved;
     out[media.media_id]=media;
