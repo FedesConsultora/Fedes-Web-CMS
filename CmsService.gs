@@ -79,6 +79,8 @@ function normalizePublicCampaign_(campaign, mediaMap) {
       enabled: safeBoolean_(banner.enabled),
       desktop_media_id: safeString_(banner.desktop_media_id),
       mobile_media_id: safeString_(banner.mobile_media_id),
+      desktop_file_id: desktopMedia ? safeString_(desktopMedia.file_id) : '',
+      mobile_file_id: mobileMedia ? safeString_(mobileMedia.file_id) : '',
       desktop_url: desktopUrl,
       mobile_url: mobileUrl,
       alt: safeString_(banner.alt),
