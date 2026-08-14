@@ -32,6 +32,19 @@ function ensureMediaPublicSharing_(file) {
   return true;
 }
 
+function repairMediaRecordPublic_(record) {
+  if (!record || !safeString_(record.file_id)) return record;
+  var file=DriveApp.getFileById(record.file_id);
+  ensureMediaPublicSharing_(file);
+  var expectedUrl=mediaPublicImageUrl_(record.file_id);
+  if (safeString_(record.public_url)!==expectedUrl && safeString_(record.media_id)) {
+    var saved=dbUpdateById_(APP.SHEETS.MEDIA,record.media_id,{public_url:expectedUrl});
+    if (saved) return saved;
+  }
+  record.public_url=expectedUrl;
+  return record;
+}
+
 function uploadMediaAdmin(token,payload) {
   var session=requireAdminSession_(token);
   payload=payload||{};
