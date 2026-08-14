@@ -34,14 +34,18 @@ function ensureMediaPublicSharing_(file) {
 
 function repairMediaRecordPublic_(record) {
   if (!record || !safeString_(record.file_id)) return record;
-  var file=DriveApp.getFileById(record.file_id);
-  ensureMediaPublicSharing_(file);
-  var expectedUrl=mediaPublicImageUrl_(record.file_id);
-  if (safeString_(record.public_url)!==expectedUrl && safeString_(record.media_id)) {
-    var saved=dbUpdateById_(APP.SHEETS.MEDIA,record.media_id,{public_url:expectedUrl});
-    if (saved) return saved;
+  try {
+    var file=DriveApp.getFileById(record.file_id);
+    ensureMediaPublicSharing_(file);
+    var expectedUrl=mediaPublicImageUrl_(record.file_id);
+    if (safeString_(record.public_url)!==expectedUrl && safeString_(record.media_id)) {
+      var saved=dbUpdateById_(APP.SHEETS.MEDIA,record.media_id,{public_url:expectedUrl});
+      if (saved) return saved;
+    }
+    record.public_url=expectedUrl;
+  } catch(err) {
+    console.warn('[Media] No se pudo reparar el acceso público de '+safeString_(record.media_id),err);
   }
-  record.public_url=expectedUrl;
   return record;
 }
 
