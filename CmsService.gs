@@ -27,7 +27,12 @@ function contentObject_() {
 
 function publicMediaMap_() {
   var out={};
-  publishedRows_(APP.SHEETS.MEDIA).forEach(function(r){ out[r.media_id]=normalizeRecordForOutput_(r); });
+  publishedRows_(APP.SHEETS.MEDIA).forEach(function(r){
+    var media=normalizeRecordForOutput_(r);
+    var resolved=mediaPublicImageUrl_(media);
+    if (resolved) media.public_url=resolved;
+    out[media.media_id]=media;
+  });
   return out;
 }
 
@@ -58,8 +63,8 @@ function normalizePublicCampaign_(campaign, mediaMap) {
   if (banner && typeof banner==='object' && !Array.isArray(banner)) {
     var desktopMedia=mediaMap[safeString_(banner.desktop_media_id)]||null;
     var mobileMedia=mediaMap[safeString_(banner.mobile_media_id)]||null;
-    var desktopUrl=desktopMedia ? (desktopMedia.public_url || desktopMedia.drive_url || '') : '';
-    var mobileUrl=mobileMedia ? (mobileMedia.public_url || mobileMedia.drive_url || '') : '';
+    var desktopUrl=desktopMedia ? mediaPublicImageUrl_(desktopMedia) : '';
+    var mobileUrl=mobileMedia ? mediaPublicImageUrl_(mobileMedia) : '';
 
     var defaultClickUrl='';
     var path=safeString_(out.landing_path)||'/';
@@ -156,4 +161,3 @@ function getCampaignPublic_(key) {
   campaign=ensureGaliciaCampaignPath_(campaign);
   return normalizePublicCampaign_(campaign, publicMediaMap_());
 }
-
