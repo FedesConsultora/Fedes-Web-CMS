@@ -15,7 +15,10 @@ function adminQueryTableList_(token, tableKey, query) {
   requireAdminSession_(token);
   var def = adminRequireTable_(tableKey);
   var q = query || {};
-  var all = dbReadAll_(def.sheet, {includeArchived:true}).map(function(row){ return adminSanitizeRowForUi_(def,row); });
+  var all = dbReadAll_(def.sheet, {includeArchived:true}).map(function(row){
+    if (def.sheet === APP.SHEETS.MEDIA) row = repairMediaRecordPublic_(row);
+    return adminSanitizeRowForUi_(def,row);
+  });
   var base = all.slice();
   if (!safeBoolean_(q.includeArchived) && (SCHEMA[def.sheet] || []).indexOf('archived_at') >= 0) base = base.filter(function(row){ return !safeString_(row.archived_at); });
   var facets = {};
